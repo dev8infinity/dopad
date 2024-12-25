@@ -1,0 +1,41 @@
+.card {
+    --size: 200px;
+    width: var(--size);
+    position: relative;
+    border-radius: .7rem;
+    overflow: hidden;
+    color: #000;
+    transform: translateZ(0);
+}
+
+.card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card__action {
+    cursor: pointer;
+    position: absolute;
+    aspect-ratio: 1;
+    width: calc(var(--size) * 0.15);
+    bottom: 30%;
+    right: 1.5rem;
+    transform: translateY(50%) translateY(calc((var(--size) * 0.4))) translateY(calc(var(--hover, 0) * (var(--size) * -0.4)));
+    background: purple;
+    display: grid;
+    place-items: center;
+    border-radius: 0.5rem;
+    background: hsl(0 0% 100% / 0.5);
+    transition: transform 0.2s;
+}
+
+.card__action svg {
+    aspect-ratio: 1;
+    /* width: 200%; */
+    color: black;
+}
+
+.card:is(:hover, :focus-visible) {
+    --hover: 1;
+}
