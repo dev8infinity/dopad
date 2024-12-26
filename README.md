@@ -9,7 +9,7 @@
 ### Frontend
 - image container with copy button X
 - file container with download button X
-- paste and upload of file
+- paste file X
 - when a text is focused I can paste text into him, else paste at the end
 - when a text is focused I can paste image in the position choosen, to do this: you need to create a function to separate the inital Content into two and put the image content in between 
 - copy button on the entire page to copy all text
@@ -18,6 +18,7 @@
 - See if you can modify or unify the divs so can select text from more than one div at the same time
 - 'X' button to remove the image and unify the Content
 
+- Create upload
 - Create the socket
 
 Extra:
@@ -28,6 +29,7 @@ Extra:
 - Create the socket
 - Create DB
 - Create API
+- Create upload
 
 ### App
 

@@ -62,9 +62,9 @@ function App() {
 
           if (e.clipboardData.files && e.clipboardData.files.length > 0) {
 
-            convert.retrieveImageFromClipboardAsBase64(e, function (imageDataBase64: string | undefined) {
-              if (imageDataBase64) {
-                handleContentItemAdd('image', imageDataBase64)
+            convert.retrieveFileFromClipboardAsBase64(e, function (base64: string | undefined, isImage: boolean) {
+              if (base64) {
+                handleContentItemAdd(isImage ? 'image' : 'file', base64)
               }
             });
             return;
