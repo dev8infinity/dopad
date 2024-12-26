@@ -1,3 +1,4 @@
-export type ImageProps = {
+export type FileProps = {
     url: string,
+    onDelete: () => void,
 }

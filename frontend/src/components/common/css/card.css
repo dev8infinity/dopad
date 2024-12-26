@@ -39,3 +39,13 @@
 .card:is(:hover, :focus-visible) {
     --hover: 1;
 }
+
+.card__close svg {
+    cursor: pointer;
+    position: absolute;
+    width: calc(var(--size) * 0.2);
+    bottom: 80%;
+    right: 0;
+    color: white;
+    mix-blend-mode: difference;
+}

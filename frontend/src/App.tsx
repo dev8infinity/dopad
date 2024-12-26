@@ -56,6 +56,10 @@ function App() {
     setContent(c => [...c, ...newContent])
 
   }
+  function handleContentItemDelete(key: string) {
+    setContentBD(c => c.filter((item) => item.key != key))
+    setContent(c => c.filter((item) => item.key != key))
+  }
 
 
   return (
@@ -90,10 +94,10 @@ function App() {
               >{item.text}</div>
             }
             else if (isContentImg(item)) {
-              return <ImageCard key={item.key} url={item.url as string} />
+              return <ImageCard onDelete={()=> handleContentItemDelete(item.key)} key={item.key} url={item.url as string} />
             }
             else if (isContentFile(item)) {
-              return <FileCard key={item.key} url={item.url as string} />
+              return <FileCard onDelete={()=> handleContentItemDelete(item.key)} key={item.key} url={item.url as string} />
             }
           })
         }

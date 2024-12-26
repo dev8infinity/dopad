@@ -1,14 +1,17 @@
-import { ImageProps } from "./types";
+import { FileProps } from "./types";
 import '../common/css/card.css';
 import DownloadButton from "../DownloadButton";
+import DeleteButton from "../DeleteButton";
 
-const FileCard = (props: ImageProps) => {
- 
+const FileCard = (props: FileProps) => {
+
   return (
     <div className="card">
-      <img className="card__img" id="image" 
-      src="/generic.png" 
-      alt="image of generic file" />
+      <DeleteButton class="card__close" onDelete={() => props.onDelete()} />
+
+      <img className="card__img" id="image"
+        src="/generic.png"
+        alt="image of generic file" />
 
       <DownloadButton url={props.url} class="card__action" />
     </div>
