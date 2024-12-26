@@ -1,0 +1,5 @@
+public/1.pdf
+public/1.png
+node_modules/
+dist
+.env/

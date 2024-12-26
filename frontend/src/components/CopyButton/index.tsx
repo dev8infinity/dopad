@@ -1,6 +1,7 @@
 import * as clipboard from "../../functions/clipboard";
 import { CopyButtonProps } from "./types";
-import "./index.css";
+import "../common/css/button.css";
+
 export default function CopyButton(props: CopyButtonProps) {
     return (
         <span className={props.class || "defaultCopyButton"} onClick={() => {

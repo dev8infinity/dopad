@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import './App.css'
-import Image from './components/Image'
+import ImageCard from './components/ImageCard'
+import FileCard from './components/FileCard'
 import CopyButton from './components/CopyButton';
 import * as convert from './functions/convert';
 import { v4 } from 'uuid';
-import { Content, ContentType, isContentText, isContentImg } from './types';
+import { Content, ContentType, isContentText, isContentImg, isContentFile } from './types';
 
 const defaultContent: Content[] = [
   {
@@ -21,6 +22,11 @@ const defaultContent: Content[] = [
     key: "3",
     type: 'text',
     text: 'YYY'
+  },
+  {
+    key: "5",
+    type: 'file',
+    url: '/1.pdf'
   },
 ];
 function App() {
@@ -56,7 +62,7 @@ function App() {
 
           if (e.clipboardData.files && e.clipboardData.files.length > 0) {
 
-            convert.retrieveImageFromClipboardAsBase64(e , function (imageDataBase64: string | undefined) {
+            convert.retrieveImageFromClipboardAsBase64(e, function (imageDataBase64: string | undefined) {
               if (imageDataBase64) {
                 handleContentItemAdd('image', imageDataBase64)
               }
@@ -75,9 +81,11 @@ function App() {
                 onInput={e => handleContentItemChange(item.key, e.currentTarget.innerText)}
               >{item.text}</div>
             }
-            if (isContentImg(item)) {
-              console.log(item)
-              return <Image key={item.key} url={item.url as string} />
+            else if (isContentImg(item)) {
+              return <ImageCard key={item.key} url={item.url as string} />
+            }
+            else if (isContentFile(item)) {
+              return <FileCard key={item.key} url={item.url as string} />
             }
           })
         }
