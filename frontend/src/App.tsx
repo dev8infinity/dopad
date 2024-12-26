@@ -28,6 +28,11 @@ const defaultContent: Content[] = [
     type: 'file',
     url: '/1.pdf'
   },
+  {
+    key: "6",
+    type: 'text',
+    text: 'YYY'
+  },
 ];
 function App() {
 
@@ -56,7 +61,9 @@ function App() {
   return (
     <>
       <div id='rootie'
-
+      //the parent must be the editable one so you can select all the elements and copy BUT
+      // now the user can delete everything: TODO
+       contentEditable={true} 
         onPaste={(e) => {
           e.preventDefault();
 
@@ -76,7 +83,8 @@ function App() {
             if (isContentText(item)) {
               return <div
                 id={index == content.length - 1 ? "lastChild" : ""}
-                contentEditable={true} key={item.key}
+                // contentEditable={true} 
+                key={item.key}
                 className="itemText"
                 onInput={e => handleContentItemChange(item.key, e.currentTarget.innerText)}
               >{item.text}</div>

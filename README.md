@@ -12,10 +12,11 @@
 - paste file X
 - when a text is focused I can paste text into him, else paste at the end
 - when a text is focused I can paste image in the position choosen, to do this: you need to create a function to separate the inital Content into two and put the image content in between 
-- copy button on the entire page to copy all text
-- can upload a bunch of images and files at the same time
+- copy button style of the entire page
+- can upload a bunch of images and files at the same time X
+- let the user delete everything X, but also, update the state
 
-- See if you can modify or unify the divs so can select text from more than one div at the same time
+- let the user select text from different divs X
 - 'X' button to remove the image and unify the Content
 
 - Create upload
