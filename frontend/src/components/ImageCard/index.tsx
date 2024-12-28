@@ -6,7 +6,7 @@ import DeleteButton from "../DeleteButton";
 const ImageCard = (props: ImageCardProps) => {
 
   return (
-    <div className="card">
+    <div className="card" id={props.id}>
 
       <DeleteButton class="card__close" onDelete={() => props.onDelete()} />
 

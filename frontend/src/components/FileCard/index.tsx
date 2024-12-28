@@ -6,10 +6,13 @@ import DeleteButton from "../DeleteButton";
 const FileCard = (props: FileProps) => {
 
   return (
-    <div className="card">
+    <div className="card" id={props.id} 
+    >
       <DeleteButton class="card__close" onDelete={() => props.onDelete()} />
 
-      <img className="card__img" id="image"
+      <img className="card__img"
+
+        id="image"
         src="/generic.png"
         alt="image of generic file" />
 
