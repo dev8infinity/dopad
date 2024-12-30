@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import ImageCard from './components/ImageCard'
 import FileCard from './components/FileCard'
@@ -70,7 +70,6 @@ function App() {
   }
 
   function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    e.preventDefault();
 
     if (e.clipboardData.files && e.clipboardData.files.length > 0) {
 
@@ -81,8 +80,6 @@ function App() {
       });
       return;
     }
-    //TODO
-    // console.log(e.clipboardData.getData('Text'))
   }
 
   function handleInput(e: React.FormEvent<HTMLDivElement>) {
@@ -145,7 +142,7 @@ function App() {
       let contentD = selectedContents.pop();
       while (selectedContents.length && contentD && !isContentText(contentD)) {
         toRemove.push(contentD);
-        contentA = selectedContents.shift();
+        contentD = selectedContents.pop();
       }
 
       if (contentD && !isContentText(contentD)) {
@@ -234,7 +231,9 @@ function App() {
       return ret
     }
   }
-
+  useEffect(() => {
+    console.log(trackedContent)
+  }, [trackedContent])
   return (
     <>
       <div id='rootie' contentEditable={"plaintext-only"} suppressContentEditableWarning={true}
@@ -248,6 +247,7 @@ function App() {
         onPaste={handlePaste}
         onInput={handleInput}
         onCut={handleDeleteButton}
+        onDragEnd={(e) => e.preventDefault()}
 
       >
         {

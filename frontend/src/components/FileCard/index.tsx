@@ -11,8 +11,8 @@ const FileCard = (props: FileProps) => {
       <DeleteButton class="card__close" onDelete={() => props.onDelete()} />
 
       <img className="card__img"
-
-        id="image"
+        draggable="false"
+        id={props.id}
         src="/generic.png"
         alt="image of generic file" />
 

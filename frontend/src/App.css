@@ -50,7 +50,14 @@
   background-color: transparent;
   justify-content: start;
 }
-
+.notDraggable{
+  user-drag: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
 
 .read-the-docs {
   color: #888;

@@ -10,7 +10,9 @@ const ImageCard = (props: ImageCardProps) => {
 
       <DeleteButton class="card__close" onDelete={() => props.onDelete()} />
 
-      <img className="card__img" id="image"
+      <img className="card__img" 
+        draggable="false" 
+        id={props.id}
         src={props.url}
         alt="" />
 
