@@ -5,6 +5,13 @@ import "../common/css/button.css";
 export default function CopyButton(props: CopyButtonProps) {
     return (
         <span className={props.class || "defaultCopyButton"} onClick={() => {
+            if(props.onClick){
+                props.onClick();
+                return;
+            }
+            if(!props.content){
+                return;
+            }
             switch (props.type) {
                 case "text":
                     clipboard.copyTextToClipboard(props.content);

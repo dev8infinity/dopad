@@ -1,7 +1,8 @@
 import { ContentType } from "../../types"
 
 export type CopyButtonProps = {
-    content: string,
-    type: ContentType,
+    content?: string,
+    onClick?: () => void,
+    type: ContentType | "function",
     class?: string
 }

@@ -41,7 +41,7 @@ const defaultContent: Content[] = [
 function App() {
 
   const [displayedContent, setDisplayedContent] = useState<Content[]>(defaultContent);
-  const queueTextUpdate = useRef<{key: string, concatString: string}[]>([]);
+  const queueTextUpdate = useRef<{ key: string, concatString: string }[]>([]);
   const lastSelection = useRef<number>();
   const lastElementSelected = useRef<Node>();
 
@@ -54,7 +54,7 @@ function App() {
       return item;
     }))
   }
-  function concatStringInItemText(id: string, concatStr: string) {
+  function concatStringTextItem(id: string, concatStr: string) {
     setDisplayedContent(c => c.map((item) => {
       if (item.key == id && isContentText(item)) {
         item.text += concatStr;
@@ -64,14 +64,21 @@ function App() {
     }))
   }
 
-  function addItem(type: ContentType, urlOrText: string) {
+  function addItem(type: ContentType, urlOrText: string, atIndex?: number) {
     const newContent: Content[] = [{ key: v4(), type, url: type != 'text' ? urlOrText : undefined, text: type == 'text' ? urlOrText : undefined }];
-    if(type != 'text'){
+    if (type != 'text') {
       newContent.push({ key: v4(), type: 'text', text: " " });
     }
-    setDisplayedContent(c => [...c, ...newContent]);
+    setDisplayedContent(c => {
+      if (atIndex) {
+        const newContentArray = [...c]; // Make a copy of the existing content array
+        newContentArray.splice(atIndex, 0, newContent[0]); // Insert newContent at the given index
+        return newContentArray;
+      }
+      return [...c, ...newContent];
+    });
   }
- 
+
   function deleteItens(keys: string[]) {
     setDisplayedContent(c => c.filter((item) => !keys.includes(item.key)));
   }
@@ -105,7 +112,10 @@ function App() {
     })
   }
 
-  function handleDeleteButtonCaret(event: React.ClipboardEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) {
+  function handleDeleteButtonWhenCaret(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (window.getSelection()?.type != "Caret" || !["Backspace", "Delete"].includes(event.key)) {
+      return;
+    }
     const toDelete: string[] = [];
 
     Array.from(event.currentTarget.children).forEach((node) => {
@@ -113,12 +123,12 @@ function App() {
         return;
       }
       const content = displayedContent.find((content) => content.key == node.id);
-      if(!content){
-        console.log("error, content not found", node);
+      if (!content) {
+        console.log("error, content not found while deleting with caret", node);
         return;
       }
-      console.log("content", content);
-      if (!isContentText(content) || content.text == "" || content.text == "\n") {
+      if (!isContentText(content) || (content.text || "").trim() == "") {
+        console.log("content is being deleted with caret, preventing default..., deleting from state", content);
         toDelete.push(node.id);
         event.preventDefault();
       }
@@ -126,133 +136,130 @@ function App() {
     deleteItens(toDelete);
   }
 
+
   function handleSelection() {
 
     const selection = window.getSelection();
-    if (selection?.type == "Range") {
-
-      const anchorNode = (selection.anchorNode?.nodeType == 1 ? selection.anchorNode : selection.anchorNode?.parentElement) as HTMLElement;
-      const destinationNode = (selection.focusNode?.nodeType == 1 ? selection.focusNode : selection.focusNode?.parentElement) as HTMLElement;
-      const indexA = displayedContent.findIndex(item => item.key === anchorNode.id);
-      const indexD = displayedContent.findIndex(item => item.key === destinationNode.id);
-      const selectedContents = helpers.getValuesBetween(displayedContent, indexA, indexD);
-      const toRemove: Content[] = [];
-
-      let contentA = selectedContents.shift();
-      while (selectedContents.length && contentA && !isContentText(contentA)) {
-        toRemove.push(contentA);
-        contentA = selectedContents.shift();
-      }
-
-      let contentD = selectedContents.pop();
-      while (selectedContents.length && contentD && !isContentText(contentD)) {
-        toRemove.push(contentD);
-        contentD = selectedContents.pop();
-      }
-
-      if (contentD && !isContentText(contentD)) {
-        toRemove.push(contentD);
-        contentD = undefined;
-      }
-      if (contentA && !isContentText(contentA)) {
-        toRemove.push(contentA);
-        contentA = undefined;
-      }
-
-      if (!contentA) {
-        deleteItens(toRemove.map((content) => content.key));
-        return;
-      }
-
-      toRemove.push(...selectedContents);
-      //If anchor is before the destination of selection
-      if (indexA < indexD && contentA && contentD) {
-        const str = contentA.text as string;
-        const newString = helpers.deleteSubstring(str, Math.min(selection.anchorOffset, str.length), Math.max(selection.anchorOffset, str.length));
-        if (newString == "") {
-          toRemove.push(contentA);
-        }
-        const str2 = contentD.text as string;
-        const newString2 = helpers.deleteSubstring(str2, Math.min(0, selection.focusOffset), Math.max(0, selection.focusOffset));
-        if (newString2 == "") {
-          toRemove.push(contentD);
-        } 
-        if (newString != "" && newString2 != "") {
-          const concatString = newString + newString2;
-          queueTextUpdate.current.push({ key: contentA.key, concatString })
-          toRemove.push(contentD);
-        }
-      }
-      //If anchor is after the destination of selection
-      if (indexA > indexD && contentA && contentD) {
-        const str = contentA.text as string;
-        const newString = helpers.deleteSubstring(str, Math.min(0, selection.anchorOffset), Math.max(0, selection.anchorOffset));
-        console.log("newString", newString);
-        if (newString == "") {
-          toRemove.push(contentA);
-        }
-        const str2 = contentD.text as string;
-        const newString2 = helpers.deleteSubstring(str2, Math.min(selection.focusOffset, str2.length), Math.max(selection.focusOffset, str2.length));
-
-        if (newString2 == "") {
-          toRemove.push(contentD);
-        } 
-
-        if (newString != "" && newString2 != "") {
-          const concatString = newString2 + newString;
-          queueTextUpdate.current.push({ key: contentD.key, concatString })
-          toRemove.push(contentA);
-        }
-      }
-      deleteItens(toRemove.map((content) => content.key));
+    if (!selection || selection.type != "Range") {
+      return;
     }
+    const anchorNode = (selection.anchorNode?.nodeType == 1 ? selection.anchorNode : selection.anchorNode?.parentElement) as HTMLElement;
+    const destinationNode = (selection.focusNode?.nodeType == 1 ? selection.focusNode : selection.focusNode?.parentElement) as HTMLElement;
+    const indexA = displayedContent.findIndex(item => item.key === anchorNode.id);
+    const indexD = displayedContent.findIndex(item => item.key === destinationNode.id);
+    const selectedContents = helpers.getValuesBetween(displayedContent, indexA, indexD);
+    const toRemove: Content[] = [];
+    let contentA = selectedContents.shift();
+    while (selectedContents.length && contentA && !isContentText(contentA)) {
+      toRemove.push(contentA);
+      contentA = selectedContents.shift();
+    }
+
+    let contentD = selectedContents.pop();
+    while (selectedContents.length && contentD && !isContentText(contentD)) {
+      toRemove.push(contentD);
+      contentD = selectedContents.pop();
+    }
+
+    if (contentD && !isContentText(contentD)) {
+      toRemove.push(contentD);
+      contentD = undefined;
+    }
+    if (contentA && !isContentText(contentA)) {
+      toRemove.push(contentA);
+      contentA = undefined;
+    }
+
+    if (!contentA) {
+      deleteItens(toRemove.map((content) => content.key));
+      return;
+    }
+
+    toRemove.push(...selectedContents);
+    //If anchor is before the destination of selection
+    if (indexA < indexD && contentA && contentD) {
+      const str = contentA.text as string;
+      const newString = helpers.deleteSubstring(str, Math.min(selection.anchorOffset, str.length), Math.max(selection.anchorOffset, str.length));
+      if (newString == "") {
+        toRemove.push(contentA);
+      }
+      const str2 = contentD.text as string;
+      const newString2 = helpers.deleteSubstring(str2, Math.min(0, selection.focusOffset), Math.max(0, selection.focusOffset));
+      if (newString2 == "") {
+        toRemove.push(contentD);
+      }
+      if (newString != "" && newString2 != "") {
+        queueTextUpdate.current.push({ key: contentA.key, concatString: newString2 })
+        toRemove.push(contentD);
+      }
+    }
+    //If anchor is after the destination of selection
+    if (indexA > indexD && contentA && contentD) {
+      const str = contentA.text as string;
+      const newString = helpers.deleteSubstring(str, Math.min(0, selection.anchorOffset), Math.max(0, selection.anchorOffset));
+      console.log("newString", newString);
+      if (newString == "") {
+        toRemove.push(contentA);
+      }
+      const str2 = contentD.text as string;
+      const newString2 = helpers.deleteSubstring(str2, Math.min(selection.focusOffset, str2.length), Math.max(selection.focusOffset, str2.length));
+
+      if (newString2 == "") {
+        toRemove.push(contentD);
+      }
+
+      if (newString != "" && newString2 != "") {
+        queueTextUpdate.current.push({ key: contentD.key, concatString: newString })
+        toRemove.push(contentA);
+      }
+    }
+    console.log("toBEEEEERemoved in handleSelection: ", toRemove);
+    deleteItens(toRemove.map((content) => content.key));
+
 
   }
-  useEffect(() => {
-    if (lastElementSelected.current && lastSelection.current) {
-      const range = document.createRange();
-      range.setStart(lastElementSelected.current, lastSelection.current);
-      range.setEnd(lastElementSelected.current, lastSelection.current);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-
-      lastElementSelected.current = lastSelection.current = undefined;
+  useEffect(() => setSelectionDOM(), [displayedContent]);
+  function setSelectionDOM() {
+    console.log("displayedContent", displayedContent);
+    if (!lastElementSelected.current || !lastSelection.current) {
+      return;
     }
-  }, [displayedContent])
+    console.log("setting selection to element, position: ", lastElementSelected.current, lastSelection.current);
+    const range = document.createRange();
+    range.setStart(lastElementSelected.current, lastSelection.current);
+    range.setEnd(lastElementSelected.current, lastSelection.current);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
 
+    lastElementSelected.current = lastSelection.current = undefined;
+  }
   return (
     <>
       <button onClick={() => setDisplayedContent([{ key: "3", type: "text", text: "aaa" }])}>clear</button>
       <div id='rootie' contentEditable={"plaintext-only"} suppressContentEditableWarning={true}
-        onKeyDown={(e) => {
-          if (window.getSelection()?.type == "Caret" && (e.key === "Backspace" || e.key === "Delete")) {
-            handleDeleteButtonCaret(e);
-            return;
-          }
-        handleSelection();
-        }}
+        onKeyDown={handleDeleteButtonWhenCaret}
         onPaste={handlePaste}
-        // onCut={handleDeleteButton}
+        onCut={handleSelection}
         onBeforeInput={(e: React.CompositionEvent<HTMLInputElement>) => {
           const selection = window.getSelection();
-          const anchorNode = (selection?.anchorNode?.nodeType == 1  ? selection?.anchorNode : selection?.anchorNode?.parentElement) as HTMLElement;
+          const anchorNode = (selection?.anchorNode?.nodeType == 1 ? selection?.anchorNode : selection?.anchorNode?.parentElement) as HTMLElement;
           const focusedItem = displayedContent.find((content) => content.key == anchorNode.id);
 
           //if user tries to type in a non text item, we add the text to the next item
           //BUG: the image is being deleted
-          if (selection?.type == "Caret" && 
-              ((focusedItem && !isContentText(focusedItem)) || anchorNode.id == "rootie")){
-            const item = focusedItem || displayedContent.pop();
+          if (selection?.type == "Caret" &&
+            ((focusedItem && !isContentText(focusedItem)) || anchorNode.id == "rootie")) {
             e.preventDefault();
-            console.log("user tries to type in a non-text item", item);
+            console.log("user tries to type in a non-text item", focusedItem);
+            console.log("anchorNode", anchorNode);
 
-            if(!item) {
+            if (!focusedItem) {
               console.log("item was not found when user tries to type in a non-text item");
               return;
             }
 
-            const currentIndex = displayedContent.findIndex(content => content.key === item.key);
+            const currentIndex = displayedContent.findIndex(content => content.key === focusedItem.key);
             const data = e.data;
 
             if (currentIndex > -1 && displayedContent.length >= currentIndex + 1 && isContentText(displayedContent[currentIndex + 1])) {
@@ -261,25 +268,25 @@ function App() {
               updateTextItem(nextItem.key, data + nextItem.text);
               return;
             }
-            console.log("there is NOT a next item to put the text in. Creating...", item);
-            addItem('text', data);
+            console.log("there is NOT a next text item to put the text in. Creating...", focusedItem);
+            addItem('text', data, currentIndex + 1);
             return;
           }
 
           handleSelection();
         }}
         onInput={(e) => {
-  
+
           handleInput(e);
-          
+
           let item = queueTextUpdate.current.pop();
           while (item) {
             console.log("updating: ", item);
-            concatStringInItemText(item.key, item.concatString);
+            concatStringTextItem(item.key, item.concatString);
             item = queueTextUpdate.current.pop();
           }
 
-          lastSelection.current = window.getSelection()?.anchorOffset || 0;
+          lastSelection.current = window.getSelection()?.anchorOffset;
           lastElementSelected.current = window.getSelection()?.focusNode as Node;
         }}
 
@@ -298,15 +305,26 @@ function App() {
           })
         }
       </div>
-      <CopyButton type='text'
-        content={displayedContent.reduce((previous, current) => {
-          if (isContentText(current)) {
-            previous.text = previous.text + '\n' + current.text;
+      <CopyButton
+        type="function"
+        onClick={() => {
+          const selection = window.getSelection();
+          const container = document.querySelector('#rootie');
+          if(!selection || !container){
+            return;
           }
-          return previous;
-        }, { text: "" } as Content).text || ""
-        } />
-
+          if (selection.rangeCount > 0) {
+            selection.removeAllRanges();
+          }
+          
+          const range = document.createRange();
+          range.selectNode(container);
+          selection.addRange(range);
+          document.execCommand("copy");
+          selection.removeAllRanges();
+          return;
+        }} />
+  
     </>
   )
 
