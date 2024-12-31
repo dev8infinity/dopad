@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import ImageCard from './components/ImageCard'
 import FileCard from './components/FileCard'
@@ -40,32 +40,39 @@ const defaultContent: Content[] = [
 ];
 function App() {
 
-  const [displayedContent, setDisplayedContent] = useState<Content[]>(JSON.parse(JSON.stringify(defaultContent)));
-  const [trackedContent, setTrackedContentBD] = useState<Content[]>(defaultContent);
+  const [displayedContent, setDisplayedContent] = useState<Content[]>(defaultContent);
+  const queueTextUpdate = useRef<{key: string, concatString: string}[]>([]);
+  const lastSelection = useRef<number>();
+  const lastElementSelected = useRef<Node>();
 
-
-  function updateItemText(id: string, newValue: string) {
-    setTrackedContentBD(c => c.map((item) => {
+  function updateTextItem(id: string, newText: string) {
+    setDisplayedContent(c => c.map((item) => {
       if (item.key == id && isContentText(item)) {
-        item.text = newValue;
-        item.hash = helpers.createSHA256Hash(newValue);
+        item.text = newText;
+        item.hash = helpers.createSHA256Hash(newText);
+      }
+      return item;
+    }))
+  }
+  function concatStringInItemText(id: string, concatStr: string) {
+    setDisplayedContent(c => c.map((item) => {
+      if (item.key == id && isContentText(item)) {
+        item.text += concatStr;
+        item.hash = helpers.createSHA256Hash(item.text as string);
       }
       return item;
     }))
   }
 
-  function addFileItemToDisplay(type: ContentType, newValue: string) {
-    const newContent: Content[] = [{ key: v4(), type, url: newValue } as Content, { key: v4(), type: 'text', text: " " }];
-    setTrackedContentBD(c => [...c, ...newContent]);
+  function addItem(type: ContentType, urlOrText: string) {
+    const newContent: Content[] = [{ key: v4(), type, url: type != 'text' ? urlOrText : undefined, text: type == 'text' ? urlOrText : undefined }];
+    if(type != 'text'){
+      newContent.push({ key: v4(), type: 'text', text: " " });
+    }
     setDisplayedContent(c => [...c, ...newContent]);
   }
-
+ 
   function deleteItens(keys: string[]) {
-    setTrackedContentBD(c => c.filter((item) => !keys.includes(item.key)));
-  }
-
-  function deleteItensFromDisplay(keys: string[]) {
-    setTrackedContentBD(c => c.filter((item) => !keys.includes(item.key)));
     setDisplayedContent(c => c.filter((item) => !keys.includes(item.key)));
   }
 
@@ -75,7 +82,7 @@ function App() {
 
       convert.retrieveFileFromClipboardAsBase64(e, function (base64: string | undefined, isImage: boolean) {
         if (base64) {
-          addFileItemToDisplay(isImage ? 'image' : 'file', base64)
+          addItem(isImage ? 'image' : 'file', base64)
         }
       });
       return;
@@ -83,40 +90,40 @@ function App() {
   }
 
   function handleInput(e: React.FormEvent<HTMLDivElement>) {
-    const toDelete: string[] = [];
+
     const nodes = Array.from(e.currentTarget.children);
 
-    trackedContent.forEach((content) => {
+    displayedContent.forEach((content) => {
       const htmlNode = nodes.find(node => node.id == content.key);
       if (!htmlNode) {
-        toDelete.push(content.key);
-        return;
-      }
-      if ((isContentImg(content) || isContentFile(content)) && htmlNode.querySelector('img') == null) {
-        toDelete.push(content.key);
         return;
       }
       if ('innerText' in htmlNode && isContentText(content) && helpers.createSHA256Hash(htmlNode.innerText as string) != content.hash) {
-        updateItemText(content.key, htmlNode.innerText as string);
+        updateTextItem(content.key, htmlNode.innerText as string);
         return;
       }
     })
-    deleteItens(toDelete);
   }
 
-  function handleDeleteButton(event: React.ClipboardEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) {
+  function handleDeleteButtonCaret(event: React.ClipboardEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) {
     const toDelete: string[] = [];
 
     Array.from(event.currentTarget.children).forEach((node) => {
       if (!window.getSelection()?.containsNode(node, true)) {
         return;
       }
-      const content = trackedContent.find((content) => content.key == node.id)
-      if (content && !isContentText(content)) {
+      const content = displayedContent.find((content) => content.key == node.id);
+      if(!content){
+        console.log("error, content not found", node);
+        return;
+      }
+      console.log("content", content);
+      if (!isContentText(content) || content.text == "" || content.text == "\n") {
         toDelete.push(node.id);
+        event.preventDefault();
       }
     })
-    deleteItensFromDisplay(toDelete);
+    deleteItens(toDelete);
   }
 
   function handleSelection() {
@@ -124,12 +131,11 @@ function App() {
     const selection = window.getSelection();
     if (selection?.type == "Range") {
 
-      const finalContent: Content[] = JSON.parse(JSON.stringify(trackedContent))
       const anchorNode = (selection.anchorNode?.nodeType == 1 ? selection.anchorNode : selection.anchorNode?.parentElement) as HTMLElement;
       const destinationNode = (selection.focusNode?.nodeType == 1 ? selection.focusNode : selection.focusNode?.parentElement) as HTMLElement;
-      const indexA = trackedContent.findIndex(item => item.key === anchorNode.id);
-      const indexD = trackedContent.findIndex(item => item.key === destinationNode.id);
-      const selectedContents = helpers.getValuesBetween(trackedContent, indexA, indexD);
+      const indexA = displayedContent.findIndex(item => item.key === anchorNode.id);
+      const indexD = displayedContent.findIndex(item => item.key === destinationNode.id);
+      const selectedContents = helpers.getValuesBetween(displayedContent, indexA, indexD);
       const toRemove: Content[] = [];
 
       let contentA = selectedContents.shift();
@@ -137,7 +143,6 @@ function App() {
         toRemove.push(contentA);
         contentA = selectedContents.shift();
       }
-
 
       let contentD = selectedContents.pop();
       while (selectedContents.length && contentD && !isContentText(contentD)) {
@@ -149,105 +154,134 @@ function App() {
         toRemove.push(contentD);
         contentD = undefined;
       }
+      if (contentA && !isContentText(contentA)) {
+        toRemove.push(contentA);
+        contentA = undefined;
+      }
+
       if (!contentA) {
         deleteItens(toRemove.map((content) => content.key));
         return;
       }
-      if (indexA == indexD || !contentD) {
-        if (!isContentText(contentA)) {
-          toRemove.push(contentA);
-        } else {
-          const str = contentA.text as string;
-          updateFinalContentItemText(finalContent, contentA.key,
-            helpers.deleteSubstring(str, Math.min(selection.anchorOffset, selection.focusOffset), Math.max(selection.anchorOffset, selection.focusOffset))
-          );
-        }
-      }
+
       toRemove.push(...selectedContents);
-
-
+      //If anchor is before the destination of selection
       if (indexA < indexD && contentA && contentD) {
         const str = contentA.text as string;
         const newString = helpers.deleteSubstring(str, Math.min(selection.anchorOffset, str.length), Math.max(selection.anchorOffset, str.length));
-        if(newString != "") {
-          updateFinalContentItemText(finalContent, contentA.key, newString);
-        } else {
+        if (newString == "") {
           toRemove.push(contentA);
         }
         const str2 = contentD.text as string;
         const newString2 = helpers.deleteSubstring(str2, Math.min(0, selection.focusOffset), Math.max(0, selection.focusOffset));
-        if(newString2 != "") {
-          updateFinalContentItemText(finalContent, contentD.key, newString2);
-        } else {
+        if (newString2 == "") {
           toRemove.push(contentD);
-        }
+        } 
         if (newString != "" && newString2 != "") {
-          updateFinalContentItemText(finalContent, contentA.key, newString + newString2)
+          const concatString = newString + newString2;
+          queueTextUpdate.current.push({ key: contentA.key, concatString })
           toRemove.push(contentD);
         }
       }
+      //If anchor is after the destination of selection
       if (indexA > indexD && contentA && contentD) {
         const str = contentA.text as string;
         const newString = helpers.deleteSubstring(str, Math.min(0, selection.anchorOffset), Math.max(0, selection.anchorOffset));
-        if(newString != "") {
-          updateFinalContentItemText(finalContent, contentA.key, newString);
-        } else {
+        console.log("newString", newString);
+        if (newString == "") {
           toRemove.push(contentA);
         }
-
         const str2 = contentD.text as string;
         const newString2 = helpers.deleteSubstring(str2, Math.min(selection.focusOffset, str2.length), Math.max(selection.focusOffset, str2.length));
-        if(newString2 != "") {
-          updateFinalContentItemText(finalContent, contentD.key, newString2);
-        } else {
+
+        if (newString2 == "") {
           toRemove.push(contentD);
-        }
+        } 
 
         if (newString != "" && newString2 != "") {
-          const t = newString2 + newString;
-
-          updateFinalContentItemText(finalContent, contentD.key, t)
+          const concatString = newString2 + newString;
+          queueTextUpdate.current.push({ key: contentD.key, concatString })
           toRemove.push(contentA);
         }
       }
-      setTrackedContentBD(updateFinalContentItemDelete(finalContent, toRemove.map((content) => content.key)));
       deleteItens(toRemove.map((content) => content.key));
     }
-    function updateFinalContentItemText(finalContent: Content[], key: string, newValue: string) {
-      finalContent.forEach((content) => {
-        if (content.key == key) {
-          content.text = newValue;
-        }
-      })
-    }
 
-    function updateFinalContentItemDelete(finalContent: Content[], keys: string[]) {
-      const ret: Content[] = [];
-      finalContent.forEach((content) => {
-        if (!keys.includes(content.key)) {
-          ret.push(content)
-        }
-      })
-      return ret
-    }
   }
   useEffect(() => {
-    console.log(trackedContent)
-  }, [trackedContent])
+    if (lastElementSelected.current && lastSelection.current) {
+      const range = document.createRange();
+      range.setStart(lastElementSelected.current, lastSelection.current);
+      range.setEnd(lastElementSelected.current, lastSelection.current);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      lastElementSelected.current = lastSelection.current = undefined;
+    }
+  }, [displayedContent])
+
   return (
     <>
+      <button onClick={() => setDisplayedContent([{ key: "3", type: "text", text: "aaa" }])}>clear</button>
       <div id='rootie' contentEditable={"plaintext-only"} suppressContentEditableWarning={true}
         onKeyDown={(e) => {
-          if (e.key === "Backspace" || e.key === "Delete") {
-            handleDeleteButton(e);
+          if (window.getSelection()?.type == "Caret" && (e.key === "Backspace" || e.key === "Delete")) {
+            handleDeleteButtonCaret(e);
             return;
           }
-          handleSelection();
+        handleSelection();
         }}
         onPaste={handlePaste}
-        onInput={handleInput}
-        onCut={handleDeleteButton}
-        onDragEnd={(e) => e.preventDefault()}
+        // onCut={handleDeleteButton}
+        onBeforeInput={(e: React.CompositionEvent<HTMLInputElement>) => {
+          const selection = window.getSelection();
+          const anchorNode = (selection?.anchorNode?.nodeType == 1  ? selection?.anchorNode : selection?.anchorNode?.parentElement) as HTMLElement;
+          const focusedItem = displayedContent.find((content) => content.key == anchorNode.id);
+
+          //if user tries to type in a non text item, we add the text to the next item
+          //BUG: the image is being deleted
+          if (selection?.type == "Caret" && 
+              ((focusedItem && !isContentText(focusedItem)) || anchorNode.id == "rootie")){
+            const item = focusedItem || displayedContent.pop();
+            e.preventDefault();
+            console.log("user tries to type in a non-text item", item);
+
+            if(!item) {
+              console.log("item was not found when user tries to type in a non-text item");
+              return;
+            }
+
+            const currentIndex = displayedContent.findIndex(content => content.key === item.key);
+            const data = e.data;
+
+            if (currentIndex > -1 && displayedContent.length >= currentIndex + 1 && isContentText(displayedContent[currentIndex + 1])) {
+              const nextItem = displayedContent[currentIndex + 1];
+              console.log("there is a next item to put the text in", nextItem);
+              updateTextItem(nextItem.key, data + nextItem.text);
+              return;
+            }
+            console.log("there is NOT a next item to put the text in. Creating...", item);
+            addItem('text', data);
+            return;
+          }
+
+          handleSelection();
+        }}
+        onInput={(e) => {
+  
+          handleInput(e);
+          
+          let item = queueTextUpdate.current.pop();
+          while (item) {
+            console.log("updating: ", item);
+            concatStringInItemText(item.key, item.concatString);
+            item = queueTextUpdate.current.pop();
+          }
+
+          lastSelection.current = window.getSelection()?.anchorOffset || 0;
+          lastElementSelected.current = window.getSelection()?.focusNode as Node;
+        }}
 
       >
         {
@@ -256,16 +290,16 @@ function App() {
               return <div id={item.key} key={item.key} className={"itemText" + (index == displayedContent.length - 1 ? "lastChild" : "")}>{item.text}</div>
             }
             else if (isContentImg(item)) {
-              return <ImageCard id={item.key} onDelete={() => deleteItensFromDisplay([item.key])} key={item.key} url={item.url as string} />
+              return <ImageCard id={item.key} onDelete={() => deleteItens([item.key])} key={item.key} url={item.url as string} />
             }
             else if (isContentFile(item)) {
-              return <FileCard id={item.key} onDelete={() => deleteItensFromDisplay([item.key])} key={item.key} url={item.url as string} />
+              return <FileCard id={item.key} onDelete={() => deleteItens([item.key])} key={item.key} url={item.url as string} />
             }
           })
         }
       </div>
       <CopyButton type='text'
-        content={trackedContent.reduce((previous, current) => {
+        content={displayedContent.reduce((previous, current) => {
           if (isContentText(current)) {
             previous.text = previous.text + '\n' + current.text;
           }
