@@ -18,10 +18,10 @@
 - let the user select text from different divs X
 - 'X' button to remove the image and unify the Content X
 
-- Create snapshot option, so you can go back in time to that snapshot
 
 - Create upload
 - Create the socket
+- Create snapshot option, so you can go back in time to that snapshot
 
 Extra:
 - cntrl + z and cntrl + y mechanics

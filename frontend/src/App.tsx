@@ -44,6 +44,8 @@ function App() {
   const queueTextUpdate = useRef<{ key: string, concatString: string }[]>([]);
   const lastSelection = useRef<number>();
   const lastElementSelected = useRef<Node>();
+  
+  useEffect(() => setSelectionDOM(), [displayedContent]);
 
   function updateTextItem(id: string, newText: string) {
     setDisplayedContent(c => c.map((item) => {
@@ -54,6 +56,7 @@ function App() {
       return item;
     }))
   }
+
   function concatStringTextItem(id: string, concatStr: string) {
     setDisplayedContent(c => c.map((item) => {
       if (item.key == id && isContentText(item)) {
@@ -136,7 +139,6 @@ function App() {
     deleteItens(toDelete);
   }
 
-
   function handleSelection() {
 
     const selection = window.getSelection();
@@ -218,7 +220,7 @@ function App() {
 
 
   }
-  useEffect(() => setSelectionDOM(), [displayedContent]);
+
   function setSelectionDOM() {
     console.log("displayedContent", displayedContent);
     if (!lastElementSelected.current || !lastSelection.current) {
@@ -234,61 +236,61 @@ function App() {
 
     lastElementSelected.current = lastSelection.current = undefined;
   }
+
+  function onBeforeInput(e: React.CompositionEvent<HTMLInputElement>) {
+    const selection = window.getSelection();
+    const anchorNode = (selection?.anchorNode?.nodeType == 1 ? selection?.anchorNode : selection?.anchorNode?.parentElement) as HTMLElement;
+    const focusedItem = displayedContent.find((content) => content.key == anchorNode.id);
+
+    if (selection?.type == "Caret" &&
+      ((focusedItem && !isContentText(focusedItem)) || anchorNode.id == "rootie")) {
+      e.preventDefault();
+      console.log("user tries to type in a non-text item", focusedItem);
+      console.log("anchorNode", anchorNode);
+
+      if (!focusedItem) {
+        console.log("item was not found when user tries to type in a non-text item");
+        return;
+      }
+
+      const currentIndex = displayedContent.findIndex(content => content.key === focusedItem.key);
+      const data = e.data;
+
+      if (currentIndex > -1 && displayedContent.length >= currentIndex + 1 && isContentText(displayedContent[currentIndex + 1])) {
+        const nextItem = displayedContent[currentIndex + 1];
+        console.log("there is a next item to put the text in", nextItem);
+        updateTextItem(nextItem.key, data + nextItem.text);
+        return;
+      }
+      console.log("there is NOT a next text item to put the text in. Creating...", focusedItem);
+      addItem('text', data, currentIndex + 1);
+      return;
+    }
+
+    handleSelection();
+  }
+
+  function onInput(e: React.FormEvent<HTMLDivElement>) {
+    handleInput(e);
+
+    let item = queueTextUpdate.current.pop();
+    while (item) {
+      console.log("updating: ", item);
+      concatStringTextItem(item.key, item.concatString);
+      item = queueTextUpdate.current.pop();
+    }
+
+    lastSelection.current = window.getSelection()?.anchorOffset;
+    lastElementSelected.current = window.getSelection()?.focusNode as Node;
+  }
   return (
     <>
-      <button onClick={() => setDisplayedContent([{ key: "3", type: "text", text: "aaa" }])}>clear</button>
       <div id='rootie' contentEditable={"plaintext-only"} suppressContentEditableWarning={true}
         onKeyDown={handleDeleteButtonWhenCaret}
         onPaste={handlePaste}
         onCut={handleSelection}
-        onBeforeInput={(e: React.CompositionEvent<HTMLInputElement>) => {
-          const selection = window.getSelection();
-          const anchorNode = (selection?.anchorNode?.nodeType == 1 ? selection?.anchorNode : selection?.anchorNode?.parentElement) as HTMLElement;
-          const focusedItem = displayedContent.find((content) => content.key == anchorNode.id);
-
-          //if user tries to type in a non text item, we add the text to the next item
-          //BUG: the image is being deleted
-          if (selection?.type == "Caret" &&
-            ((focusedItem && !isContentText(focusedItem)) || anchorNode.id == "rootie")) {
-            e.preventDefault();
-            console.log("user tries to type in a non-text item", focusedItem);
-            console.log("anchorNode", anchorNode);
-
-            if (!focusedItem) {
-              console.log("item was not found when user tries to type in a non-text item");
-              return;
-            }
-
-            const currentIndex = displayedContent.findIndex(content => content.key === focusedItem.key);
-            const data = e.data;
-
-            if (currentIndex > -1 && displayedContent.length >= currentIndex + 1 && isContentText(displayedContent[currentIndex + 1])) {
-              const nextItem = displayedContent[currentIndex + 1];
-              console.log("there is a next item to put the text in", nextItem);
-              updateTextItem(nextItem.key, data + nextItem.text);
-              return;
-            }
-            console.log("there is NOT a next text item to put the text in. Creating...", focusedItem);
-            addItem('text', data, currentIndex + 1);
-            return;
-          }
-
-          handleSelection();
-        }}
-        onInput={(e) => {
-
-          handleInput(e);
-
-          let item = queueTextUpdate.current.pop();
-          while (item) {
-            console.log("updating: ", item);
-            concatStringTextItem(item.key, item.concatString);
-            item = queueTextUpdate.current.pop();
-          }
-
-          lastSelection.current = window.getSelection()?.anchorOffset;
-          lastElementSelected.current = window.getSelection()?.focusNode as Node;
-        }}
+        onBeforeInput={onBeforeInput}
+        onInput={onInput}
 
       >
         {
