@@ -1,13 +1,13 @@
 import * as crypto from "crypto-js";
-import { Content } from "../types";
+import { Attachment } from "../types";
 
 export function createSHA256Hash(input: string) {
     const hash = crypto.SHA1(input);
     return hash.toString();
 }
-export function getValuesBetween(arr: Content[], index1: number, index2: number) {
+export function getValuesBetween(arr: Attachment[], index1: number, index2: number) {
 
-    const values: Content[] = [];
+    const values: Attachment[] = [];
     for (let i = Math.min(index1, index2); i <= Math.max(index1, index2); i++) {
         values.push(arr[i]);
     }

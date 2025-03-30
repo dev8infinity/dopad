@@ -1,0 +1,112 @@
+/* Sidebar Styles */
+.sidebar {
+  width: 300px;
+  height: 100vh;
+  background: #1e1e1e;
+  color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 20px;
+  transition: transform 0.3s ease-in-out;
+  overflow-y: auto;
+}
+
+/* Toggle Button */
+.toggle-btn {
+  position: absolute;
+  top: 10px;
+  right: -40px;
+  background: #1e1e1e;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 10px;
+}
+
+/* Sidebar Header */
+.sidebar h4 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #bbb;
+  margin-top: 20px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+/* Sidebar List */
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Sidebar List Items */
+.sidebar ul li {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.3s;
+  font-size: 14px;
+}
+
+/* Hover Effect */
+.sidebar ul li:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Selected Item */
+.sidebar ul .selected {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: bold;
+}
+
+/* Scrollbar Customization */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.image-card-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  position: relative;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-left: 10px; /* Ensures spacing from the ImageCard */
+}
+
+.action-btn {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+  width: 60px;
+  text-align: center;
+}
+
+.action-btn:hover {
+  background: #555;
+}

@@ -1,8 +1,8 @@
-import { ContentType } from "../../types"
+import { AttachmentType } from "../../types"
 
 export type CopyButtonProps = {
     content?: string,
     onClick?: () => void,
-    type: ContentType | "function",
+    type: AttachmentType | "function",
     class?: string
 }
