@@ -47,3 +47,13 @@ Extra:
 ## Improvements
 
 - when a text is focused I can paste image in the position choosen, to do this: you need to create a function to separate the inital Content into two and put the image content in between 
+
+
+```
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+
+dotnet ef migrations add AddGuidIds
+dotnet ef database update
+
+```
