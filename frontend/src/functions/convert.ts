@@ -1,9 +1,9 @@
-export function retrieveFileFromClipboardAsBase64(pasteEvent: React.ClipboardEvent<HTMLDivElement>, callback: (base64: string | undefined, isImage: boolean) => void) {
+export function retrieveFileFromClipboard(pasteEvent: React.ClipboardEvent<HTMLDivElement>, callback: (base64: string | undefined, isImage: boolean, blob: Blob|undefined) => void) {
     // Retrieve elements from clipboard
     const items = pasteEvent.clipboardData?.items;
 
     if (items == undefined) {
-        callback(undefined, false);
+        callback(undefined, false, undefined);
         return;
     }
 
@@ -22,7 +22,7 @@ export function retrieveFileFromClipboardAsBase64(pasteEvent: React.ClipboardEve
         reader.onloadend = function () {
             // Execute callback with the base64 URI of the file
             if (typeof callback === "function") {
-                callback(reader.result as string, blob.type.indexOf('image') != -1);
+                callback(reader.result as string, blob.type.indexOf('image') != -1, blob);
             }
         };
 

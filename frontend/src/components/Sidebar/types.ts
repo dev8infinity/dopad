@@ -1,4 +1,5 @@
-import { Content } from "../../types"
+import { Attachment } from "../../types"
 export type SidebarProps = {
-    content: Content[]
+    content: Attachment[],
+    OnDeleteItem: (id: string) => void
 }

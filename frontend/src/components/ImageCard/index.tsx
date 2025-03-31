@@ -1,5 +1,6 @@
 import { ImageCardProps } from "./types";
 import '../common/css/card.css';
+import React from "react";
 
 const ImageCard = (props: ImageCardProps) => {
 

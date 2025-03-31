@@ -1,93 +1,143 @@
-import { useState, useEffect, useRef } from 'react'
-import './App.css'
-import ImageCard from './components/ImageCard'
-import FileCard from './components/FileCard'
+import { useState, useEffect, useRef } from 'react';
+import './App.css';
 import CopyButton from './components/CopyButton';
-import * as convert from './functions/convert';
-import { v4 } from 'uuid';
-import { Content, ContentType, isContentText, isContentImg, isContentFile } from './types';
-import * as helpers from "./functions/helpers";
+import { Attachment, Content } from './types';
 import Sidebar from './components/Sidebar';
+import * as convert from './functions/convert';
+import * as api from './hooks';
+import { isImageFile,createHash, sanitizeInput } from './functions/helpers';
 
-const defaultContent: Content[] = [
-  {
-    key: "1",
-    type: 'text',
-    text: 'JJJJJJ',
-    hash: "d3aefcb4a74782727092ed69941b957fcb95f002",
-  },
+let defaultContent: Content = {
+  text: '',
+};
 
-  {
-    key: "3",
-    type: 'text',
-    text: '12345',
-    hash: "e8725db7648f38866a932387e695c9b199a8d638",
-  },
-  
-  {
-    key: "6",
-    type: 'text',
-    text: '12345',
-    hash: "e8725db7648f38866a932387e695c9b199a8d638",
-  },
+let att: Attachment[] = [
+
 ];
-const files: Content[] = [
-  {
-    key: "5",
-    type: 'file',
-    url: '/1.pdf',
-  },
-  {
-    key: "2",
-    type: 'image',
-    url: '/1.jpg',
-  },
-];
+const ENDPOINT = window.location.pathname.replace('/', '');
+
+const fetchDetails = async () => {
+  try {
+    const details = await api.getEndpointDetails(ENDPOINT);
+    if (details) {
+      const attachments: Attachment[] = details.attachments.map((file: any) => ({
+        key: file.id,
+        type: isImageFile(file.filePath) ? 'image' : 'file',
+        url: file.filePath,
+      }));
+      att = attachments;
+      defaultContent ={
+        text: details.text,
+        hash: details.hash,
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching endpoint details:", error);
+  }
+};
+
+await fetchDetails();
+
 function App() {
+  const [displayedContent, setDisplayedContent] = useState<Content>(defaultContent);
+  const [files, setFiles] = useState<Attachment[]>(att);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const isTimeoutUpdate = useRef(false);
 
-  const [displayedContent, setDisplayedContent] = useState<Content[]>(defaultContent);
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+
+    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+
+      convert.retrieveFileFromClipboard(e, function (b64, isImage: boolean, blob: Blob | undefined) {
+        if (blob) {
+          api.uploadFile(ENDPOINT, blob);
+        }
+      });
+      return;
+    }
+  }
+
+  
+  function deleteFile(key: string) {
+    setFiles((c: Attachment[]) => c.filter((item) => item.key != key));
+    api.deleteFile(key);
+  }
+
+  useEffect(() => {
+    const handleInput = () => {
+      if (contentRef.current && !isTimeoutUpdate.current) {
+        setDisplayedContent((prev) => ({ ...prev, text: contentRef.current!.innerText }));
+        api.updateContent( ENDPOINT, contentRef.current!.innerText);
+      }
+    };
+
+    const divElement = contentRef.current;
+    if (divElement) {
+      divElement.addEventListener('input', handleInput);
+    }
+
+    return () => {
+      if (divElement) {
+        divElement.removeEventListener('input', handleInput);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!contentRef.current || !isTimeoutUpdate.current) {
+      return;
+    }
+    isTimeoutUpdate.current = false; // Reset flag after updating
+    contentRef.current.innerText = displayedContent.text as string;
+  }, [displayedContent]);
+
+  useEffect(() => {
+  const interval = setInterval(async () => {
+    const hash = createHash(displayedContent.text as string);
+    const details = await api.getEndpointDetails(ENDPOINT);
+
+    const updatedAttachments: Attachment[] = details.attachments.map((file: any) => ({
+      key: file.id,
+      type: isImageFile(file.filePath) ? 'image' : 'file',
+      url: file.filePath,
+    }));
+
+    if (details.hash !== hash ) {
+      isTimeoutUpdate.current = true;
+      console.log("text updated", hash, details.hash)
+      setDisplayedContent({ text: details.text });
+    }
+    if(JSON.stringify(updatedAttachments) !== JSON.stringify(files)){
+      setFiles(updatedAttachments);
+      console.log("files updated")
+    }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [displayedContent, files]);
   
 
   return (
     <>
-    <Sidebar content={files}/>
-      <div id='rootie' contentEditable={"plaintext-only"} suppressContentEditableWarning={true}
-        // onKeyDown={handleDeleteButtonWhenCaret}
-        // onPaste={handlePaste}
-        // onCut={handleSelection}
-        // onBeforeInput={onBeforeInput}
-        // onInput={onInput}
-
+      <Sidebar OnDeleteItem={(itemId: string) => deleteFile(itemId)} content={files} />
+      <div
+        id='rootie'
+        contentEditable={"plaintext-only"}
+        suppressContentEditableWarning={true}
+        ref={contentRef}
+        className="itemText"
+        onPaste={handlePaste}
       >
-        {
-          displayedContent.map((item, index) => 
-            <div id={item.key} key={item.key} className={"itemText" + (index == displayedContent.length - 1 ? "lastChild" : "")}>{item.text}</div>
-          )
-        }
+        {sanitizeInput(defaultContent.text as string)}
       </div>
       <CopyButton
         type="function"
         onClick={() => {
-          const selection = window.getSelection();
-          const container = document.querySelector('#rootie');
-          if(!selection || !container){
-            return;
-          }
-          if (selection.rangeCount > 0) {
-            selection.removeAllRanges();
-          }
-          
-          const range = document.createRange();
-          range.selectNode(container);
-          selection.addRange(range);
-          document.execCommand("copy");
-          selection.removeAllRanges();
-          return;
-        }} />
-  
+          navigator.clipboard.writeText(displayedContent.text || "");
+        }}
+      />
     </>
-  )
-
+  );
 }
 
-export default App
+export default App;
