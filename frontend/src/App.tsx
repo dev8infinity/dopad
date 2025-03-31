@@ -3,7 +3,6 @@ import './App.css';
 import CopyButton from './components/CopyButton';
 import { Attachment, Content } from './types';
 import Sidebar from './components/Sidebar';
-import React from 'react';
 
 const defaultContent: Content = {
   key: "1",
@@ -11,7 +10,7 @@ const defaultContent: Content = {
   hash: "d3aefcb4a74782727092ed69941b957fcb95f002",
 };
 
-const files: Attachment[] = [
+const att: Attachment[] = [
   {
     key: "5",
     type: 'file',
@@ -26,8 +25,13 @@ const files: Attachment[] = [
 
 function App() {
   const [displayedContent, setDisplayedContent] = useState<Content>(defaultContent);
+  const [files, setFiles] = useState<Attachment[]>(att);
   const contentRef = useRef<HTMLDivElement>(null);
   const isTimeoutUpdate = useRef(false);
+
+  function deleteFile(key: string) {
+    setFiles((c: Attachment[]) => c.filter((item) => item.key != key));
+  }
 
   useEffect(() => {
     const handleInput = () => {
@@ -70,7 +74,7 @@ function App() {
 
   return (
     <>
-      <Sidebar content={files} />
+      <Sidebar OnDeleteItem={(itemId: string) => deleteFile(itemId)} content={files} />
       <div
         id='rootie'
         contentEditable={"plaintext-only"}

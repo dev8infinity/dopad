@@ -1,4 +1,5 @@
 export type DeleteButtonProps = {
     class?: string,
-    onDelete: () => void,
+    onDelete: (itemKey: string) => void,
+    itemKey: string
 }
